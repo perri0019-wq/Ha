@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>BOOM</title>
+
+<style>
+*{box-sizing:border-box;font-family:Arial,sans-serif;font-weight:bold}
+
+/* ===== BACKGROUND ===== */
+body{
+  margin:0;
+  font-size:22px;
+  color:#eaf6ff;
+  background:
+    radial-gradient(120% 100% at 50% 0%,
+      #1a2f6b 0%,
+      #0a1028 60%,
+      #060914 100%);
+}
+
+/* ===== HEADER ===== */
+.header{
+  display:flex;
+  align-items:center;
+  padding:20px;
+  background:linear-gradient(180deg,#1b2f6a,#101b3a);
+  box-shadow:0 12px 40px rgba(0,0,0,.6);
+}
+
+.avatar{
+  width:80px;height:80px;border-radius:50%;
+  background:rgba(255,255,255,.12);
+}
+
+.menu-back{
+  display:none;
+  margin-left:20px;
+  padding:22px 36px;
+  border-radius:28px;
+  cursor:pointer;
+  background:rgba(255,255,255,.1);
+}
+
+.balance{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  padding:26px 40px;
+  border-radius:36px;
+  font-size:38px;
+  background:linear-gradient(180deg,#2d8cff,#1f6fff);
+  box-shadow:0 8px 30px rgba(45,140,255,.6);
+  color:#fff;
+}
+
+.coin-icon{width:60px;height:60px;margin-right:14px}
+
+/* ===== MENU ===== */
+.menu{padding:28px}
+
+/* 🔘 BOOM кнопка больше */
+.bomb-btn{
+  width:100%;
+  min-height:32vh;
+  position:relative;
+  border-radius:42px;
+  cursor:pointer;
+  background:linear-gradient(180deg,#1c2d66,#141d44);
+  border:none;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.1),
+    inset 0 -12px 20px rgba(0,0,0,.6),
+    0 18px 50px rgba(0,0,0,.7);
+}
+.bomb-btn:active{transform:scale(.97)}
+
+.bomb-btn img{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:.25;
+}
+
+.bomb-btn span{
+  position:relative;
+  z-index:2;
+  font-size:96px;
+  color:#fff;
+}
+
+/* ===== GAME ===== */
+.game{display:none;padding:26px}
+.win-info{text-align:center;font-size:48px;margin-bottom:20px}
+
+/* ===== GRID ===== */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:14px;
+}
+
+/* ⚠️ Variant A — визуальное давление */
+.grid.pressure{
+  animation:pressurePulse 1.2s infinite alternate;
+}
+@keyframes pressurePulse{
+  from{filter:brightness(1)}
+  to{filter:brightness(.92)}
+}
+
+/* ===== CELLS (ускорено) ===== */
+.cell{
+  aspect-ratio:1/1;
+  background:#fff;
+  border-radius:22px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  opacity:.9;
+  transition:transform .08s ease;
+  will-change:transform;
+}
+.cell img{width:88%;height:88%}
+.cell.disabled{pointer-events:none;opacity:.5}
+
+.cell.safe img{animation:coinPop .15s ease forwards}
+.cell.boom{animation:bombHit .35s ease forwards}
+
+@keyframes coinPop{
+  0%{transform:scale(.4);opacity:0}
+  100%{transform:scale(1);opacity:1}
+}
+@keyframes bombHit{
+  0%{transform:scale(1)}
+  30%{transform:scale(.85) rotate(-4deg)}
+  60%{transform:scale(1.15) rotate(4deg)}
+  100%{transform:scale(1)}
+}
+
+/* ===== CONTROLS ===== */
+.controls{margin-top:20px}
+.bet-row{display:flex;gap:16px;margin-bottom:20px}
+.bet-row input{
+  flex:1;font-size:36px;padding:20px;
+  border-radius:20px;border:none;text-align:center
+}
+.bet-row button{
+  font-size:32px;padding:20px 26px;border-radius:20px;border:none
+}
+
+/* ===== SLIDER (увеличен) ===== */
+.slider{text-align:center;font-size:36px;margin-bottom:30px}
+.slider input[type=range]{
+  width:100%;
+  height:44px;
+  margin-top:20px;
+  -webkit-appearance:none;
+}
+.slider input[type=range]:disabled{opacity:.4}
+.slider input[type=range]::-webkit-slider-runnable-track{
+  height:10px;border-radius:10px;background:#4c6fff;
+}
+.slider input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:52px;height:52px;border-radius:50%;
+  background:#4c6fff;cursor:pointer;margin-top:-21px;
+}
+
+/* ===== BUTTONS ===== */
+.play-btn,.cashout-btn{
+  width:100%;font-size:36px;padding:26px;
+  border:none;border-radius:26px;margin-top:16px
+}
+.play-btn{background:#4c6fff;color:#fff}
+.play-btn.disabled{
+  background:#9aa4d6;
+  opacity:.6;
+  pointer-events:none;
+}
+.cashout-btn{background:#22c55e;color:#fff}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <div class="avatar"></div>
+  <div class="menu-back" id="menuBack" onclick="backToMenu()">в меню 🎰</div>
+  <div class="balance">
+    <img src="coin.png" class="coin-icon">
+    <span id="balance">1000.00</span>
+  </div>
+</div>
+
+<div class="menu" id="menu">
+  <button class="bomb-btn" onclick="enterBoom()">
+    <img src="boom-icon.png">
+    <span>BOOM</span>
+  </button>
+</div>
+
+<div class="game" id="game">
+  <div class="win-info">
+    Возможный выигрыш<br>
+    <span id="possibleWin">0.00</span><br>
+    x<span id="multiplier">1.00</span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="controls">
+    <div class="bet-row">
+      <button onclick="halfBet()">½</button>
+      <input id="bet" type="text" value="1" oninput="formatBet()">
+      <button onclick="doubleBet()">2×</button>
+    </div>
+
+    <div class="slider">
+      Бомб: <span id="bombCount">3</span><br>
+      <input id="bombSlider" type="range" min="2" max="10" value="3" oninput="setBombs(this.value)">
+    </div>
+
+    <button class="play-btn disabled" id="playBtn" onclick="play()">Играть</button>
+    <button class="cashout-btn" id="cashoutBtn" onclick="cashOut()" style="display:none">
+      Забрать выигрыш
+    </button>
+  </div>
+</div>
+
+<script>
+/* 🔊 SOUNDS */
+const sounds={
+  click:new Audio('click.mp3'),
+  coin:new Audio('coin.mp3'),
+  bomb:new Audio('bomb.mp3'),
+  cashout:new Audio('cashout.mp3')
+};
+Object.values(sounds).forEach(s=>{s.volume=.5;s.preload='auto'});
+function playSound(n){
+  if(!sounds[n])return;
+  sounds[n].currentTime=0;
+  sounds[n].play();
+}
+
+/* 📉 MULTIPLIERS */
+const multiplierTable={
+  2:{base:[1.05,1.15,1.27,1.41,1.58,1.78],step:.22},
+  3:{base:[1.07,1.22,1.40,1.62,1.90,2.25],step:.35},
+  4:{base:[1.10,1.30,1.55,1.90,2.40],step:.55},
+  5:{base:[1.12,1.40,1.78,2.32,3.10],step:.80},
+  6:{base:[1.15,1.50,2.00,2.75],step:1.10},
+  7:{base:[1.18,1.65,2.45,3.90],step:1.60},
+  8:{base:[1.22,1.80,2.90],step:2.20},
+  9:{base:[1.25,1.95,3.20],step:2.80},
+  10:{base:[1.28,2.05,3.45],step:3.50}
+};
+
+/* GAME LOGIC (НЕ МЕНЯЛАСЬ) */
+let balance=1000,betValue=0,playing=false,opened=0,multiplier=1;
+let bombs=[],bombsCount=3;
+
+const grid=document.getElementById('grid');
+const balanceEl=document.getElementById('balance');
+const betEl=document.getElementById('bet');
+const possibleWin=document.getElementById('possibleWin');
+const multiplierEl=document.getElementById('multiplier');
+const playBtn=document.getElementById('playBtn');
+const cashoutBtn=document.getElementById('cashoutBtn');
+const bombSlider=document.getElementById('bombSlider');
+
+function enterBoom(){
+  playSound('click');
+  menu.style.display='none';
+  game.style.display='block';
+  menuBack.style.display='block';
+  buildGrid();
+  validateBet();
+}
+
+function buildGrid(){
+  grid.innerHTML='';
+  grid.classList.remove('pressure');
+  for(let i=0;i<25;i++){
+    const c=document.createElement('div');
+    c.className='cell disabled';
+    c.onclick=()=>openCell(c,i);
+    grid.appendChild(c);
+  }
+}
+
+function backToMenu(){
+  menu.style.display='block';
+  game.style.display='none';
+  menuBack.style.display='none';
+}
+
+function setBombs(v){
+  bombsCount=+v;
+  bombCount.innerText=v;
+}
+
+function formatBet(){
+  let v=betEl.value.replace(',', '.').replace(/[^0-9.]/g,'');
+  if(v.includes('.')){
+    const [a,b]=v.split('.');
+    v=a+'.'+b.slice(0,2);
+  }
+  betEl.value=v;
+  validateBet();
+}
+
+function validateBet(){
+  betValue=parseFloat(betEl.value)||0;
+  if(betValue>=1&&betValue<=balance&&!playing){
+    playBtn.classList.remove('disabled');
+  }else{
+    playBtn.classList.add('disabled');
+  }
+}
+
+function halfBet(){betEl.value=(Math.max(1,betValue/2)).toFixed(2);formatBet()}
+function doubleBet(){betEl.value=(Math.min(balance,betValue*2)).toFixed(2);formatBet()}
+
+function play(){
+  if(playBtn.classList.contains('disabled'))return;
+  balance-=betValue;
+  balanceEl.innerText=balance.toFixed(2);
+  opened=0;multiplier=1;
+  possibleWin.innerText='0.00';
+  multiplierEl.innerText='1.00';
+  bombs=[];
+  playing=true;
+  playBtn.classList.add('disabled');
+  bombSlider.disabled=true;
+  grid.classList.remove('pressure');
+
+  document.querySelectorAll('.cell').forEach(c=>{
+    c.innerHTML='';
+    c.classList.remove('disabled','safe','boom');
+  });
+
+  while(bombs.length<bombsCount){
+    const r=Math.floor(Math.random()*25);
+    if(!bombs.includes(r))bombs.push(r);
+  }
+}
+
+function updateMultiplier(){
+  const t=multiplierTable[bombsCount];
+  const i=opened-1;
+  multiplier=i<t.base.length?t.base[i]:t.base.at(-1)+t.step*(i-t.base.length+1);
+}
+
+function openCell(c,i){
+  if(!playing||c.innerHTML)return;
+
+  if(bombs.includes(i)){
+    playSound('bomb');
+    c.classList.add('boom');
+    c.innerHTML='<img src="bomb.png">';
+    playing=false;
+    bombSlider.disabled=false;
+    grid.classList.remove('pressure');
+    validateBet();
+    cashoutBtn.style.display='none';
+    return;
+  }
+
+  playSound('coin');
+  opened++;
+  if(opened>=2) grid.classList.add('pressure'); // Variant A
+  updateMultiplier();
+  c.classList.add('safe');
+  c.innerHTML='<img src="coin.png">';
+  possibleWin.innerText=(betValue*multiplier).toFixed(2);
+  multiplierEl.innerText=multiplier.toFixed(2);
+  cashoutBtn.style.display='block';
+}
+
+function cashOut(){
+  playSound('cashout');
+  balance+=betValue*multiplier;
+  balanceEl.innerText=balance.toFixed(2);
+  playing=false;
+  bombSlider.disabled=false;
+  grid.classList.remove('pressure');
+  cashoutBtn.style.display='none';
+  validateBet();
+}
+</script>
+
+</body>
+</html>
